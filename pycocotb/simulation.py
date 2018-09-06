@@ -7,22 +7,6 @@ from pycocotb.clock import Clock
 import logging
 import os
 
-class Dut(object):
-
-    def __init__(self, comm):
-        self.log = logging.getLogger('Dut')
-        self.wait = Triggers(comm)
-        self.comm = comm
-
-    def get_value(self, signal):
-        ret = self.comm.send_recv(signal)
-        self.log.debug("Dut:%s => %s" % (signal, ret))
-
-    def set_value(self, signal, value):
-        ret = self.comm.send_recv("%s = %s" % (signal, value))
-        self.log.debug("Dut:%s <= %s" % (signal, value))
-
-
 class Simulation(object):
 
     default_settings = {'path':os.getenv('PWD'),
@@ -36,9 +20,7 @@ class Simulation(object):
 
     def __init__(self):
         self.settings = self.default_settings
-
-    def get_dut(self):
-        return Dut(self.comm)
+        self.log = logging.getLogger('Sim')
 
     def get_config(self, file):
         with open(file) as f:
@@ -74,13 +56,16 @@ class Simulation(object):
         self.generate_make()
         self.build_with_make()
 
+    def clean(self):
+        os.system("rm -rf sim_build")
+        os.system("rm -f Makefile")
+        os.system("rm -f results.xml")
+
     def run(self):
         self.p = subprocess.Popen('make')
-        if self.settings['mode']== 'interactive':
-            self.comm = RemoteClient(debug=True)
-            self.wait = Triggers(self.comm)
-            self.clock = Clock(self.comm)
-        #self.p = subprocess.Popen('make -C {}'.format(self.settings['path']))
+        self.comm = RemoteClient(debug=True)
+        self.wait = Triggers(self.comm)
+        self.clock = Clock(self.comm)
 
     def import_module(self, module):
         self.comm.send_recv('import {}'.format(module))
@@ -88,12 +73,25 @@ class Simulation(object):
     def fork(self, cr, args=None):
         if not args:
             args = []
-        msg = 'cocotb.fork({}({}))'.format(cr,', '.join(args))
+        msg = 'cocotb.fork({}({}))'.format(cr, ', '.join(args))
         return self.comm.send_recv(msg)
 
-    def finish(self): #TODO: Not working
-        self.p.kill()
+    def finish(self, force=False): #TODO: Not working
+        if not force:
+            self.comm.send_recv('break')
+        else:
+            self.p.kill()
+        self.wait_finish()
 
     def wait_finish(self):
         self.p.wait()
 
+
+    def get_value(self, signal):
+        ret = self.comm.send_recv(signal)
+        self.log.debug("get_value:%s => %s" % (signal, ret))
+        return ret
+
+    def set_value(self, signal, value):
+        ret = self.comm.send_recv("%s = %s" % (signal, value))
+        self.log.debug("set_value:%s <= %s" % (signal, value))
