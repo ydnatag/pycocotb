@@ -1,0 +1,12 @@
+path: ./
+cocotb_path: /home/ademski/Documents/satellogic/hdlteam/cocotb/
+
+toplevel: toplevel
+module: pycocotb.interactive
+sim: iverilog
+mode: interactive
+sim_args: bla bla bla
+
+files:
+  - ./toplevel.v
+
