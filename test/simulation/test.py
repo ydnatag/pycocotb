@@ -8,15 +8,13 @@ if __name__ == '__main__':
     sim.build()
     sim.run()
 
-    dut = sim.get_dut()
-
-    dut.get_value('dut.a')
-    dut.set_value('dut.a', 1)
+    sim.get_value('dut.a')
+    sim.set_value('dut.a', 1)
     sim.wait.time(10)
 
-    dut.set_value('dut.a', 0)
+    sim.set_value('dut.a', 0)
     sim.wait.read_only()
-    dut.get_value('dut.a')
+    sim.get_value('dut.a')
 
     sim.wait.time(10)
     sim.clock.start('dut.a', 1, 'us')
@@ -33,7 +31,5 @@ if __name__ == '__main__':
         sim.wait.falling_edge('dut.a')
 
     sim.finish()
-    sim.comm.send('break')
-    sim.comm.recv()
+    sim.clean()
 
-    sim.wait_finish()
