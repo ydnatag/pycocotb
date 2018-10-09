@@ -1,35 +1,42 @@
 from pycocotb.simulation import Simulation
 import logging
+import json
+import zmq
+import time
+import yaml
+from serial import Serial
+import sys
+
+
+class VirtualUart(object):
+    def __init__(self, dev, baudrate=9600, sim=False):
+        if not sim:
+            self.dev = Serial(dev)
+            self.write = self.dev.write
+            self.read = self.dev.read
+        else:
+            context = zmq.Context()
+            self.dev = context.socket(zmq.PAIR)
+            self.dev.bind('ipc://'+ dev)
+            self.write = self.dev.send
+            self.read = lambda size: b''.join([self.dev.recv() for _ in range(size)])
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    sim = Simulation()
-    sim.get_config(file='settings.yaml')
-    sim.build()
-    sim.run()
+    if len(sys.argv) < 2:
+        sim = Simulation()
+        sim.set_config(file='settings.yaml')
+        sim.build()
+        sim.run()
+        dev = sim.settings['devices']['uart']['dev']
+    else:
+        sim = None
+        with open('settings.yaml') as f:
+            dev = yaml.load(f)['devices']['uart']['dev']
 
-    sim.get_value('dut.a')
-    sim.set_value('dut.a', 1)
-    sim.wait.time(10)
-
-    sim.set_value('dut.a', 0)
-    sim.wait.read_only()
-    sim.get_value('dut.a')
-
-    sim.wait.time(10)
-    sim.clock.start('dut.a', 1, 'us')
-
-    #sim.import_module('cocotb.clock')
-    #sim.fork('cocotb.clock.Clock(dut.a, 100, units="ns").start')
-    for _ in range(10):
-        sim.wait.rising_edge('dut.a')
-
-    for _ in range(10):
-        sim.wait.edge('dut.a')
-
-    for _ in range(10):
-        sim.wait.falling_edge('dut.a')
-
-    sim.finish()
-    sim.clean()
+    uart = VirtualUart(dev, sim=sim)
+    logging.info('Sending: Hola')
+    uart.write(b'Hola')
+    logging.info('Received: {}'.format(uart.read(size=4)))
 
