@@ -1,30 +1,24 @@
 
 import cocotb
-from pycocotb.remote import RemoteServer
-from cocotb.triggers import *
+import importlib
+import yaml
+from cocotb.triggers import Timer
+import os
 
 @cocotb.test()
 def remote_test(dut):
+    with open(os.getenv('CONFIG_YAML')) as f:
+        sim_config = yaml.load(f)['simulation']
+
+    devs = {}
+    for key, conf in sim_config['devices'].items():
+        mod = importlib.import_module(conf['module'])
+        dev_class = getattr(mod, conf['class'])
+        devs[key] = dev_class(dut, conf['dev'], **(conf['args']))
+
     dut._log.info('Starting')
-    srv = RemoteServer(debug=True)
+
     while True:
-        msg = srv.recv()
-        cmd = msg.split(" ")[0]
-        if cmd == 'yield':
-            yield eval(msg[6:])
-            ret = ""
-        elif cmd == 'break':
-            srv.send("")
-            break
-        elif cmd == 'import':
-            exec(msg)
-            ret = ""
-        else:
-            if '=' in msg:
-                exec(msg)
-                ret = ""
-            else:
-                ret = str(eval(msg.split('=')[0]))
-        srv.send(ret)
+        yield Timer(1000, units='us')
 
 
