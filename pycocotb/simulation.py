@@ -1,5 +1,6 @@
 import yaml
 import subprocess
+import importlib
 from multiprocessing import Process
 from pycocotb.remote import RemoteClient
 from pycocotb.triggers import Triggers
@@ -20,14 +21,22 @@ class Simulation(object):
 
     def __init__(self):
         self.settings = self.default_settings
+        self.devs = {}
         self.log = logging.getLogger('Sim')
 
-    def get_config(self, file):
+    def set_config(self, file):
+        self.settings_file = file
         with open(file) as f:
             settings = yaml.load(f)
 
-        for k in settings.keys():
-            self.settings[k] = settings[k]
+        for k in settings['simulation'].keys():
+            self.settings[k] = settings['simulation'][k]
+
+        for key, conf in settings['simulation']['devices'].items():
+            #mod = importlib.import_module(conf['module'])
+            #dev_class = getattr(mod, conf['class'])
+            #self.devs[key] = dev_class(dut, conf['dev'], **(conf['args']))
+            pass
 
     def build_with_make(self):
         os.system('make build -C {}'.format(self.settings['path']))
@@ -39,6 +48,7 @@ class Simulation(object):
         lines.append('VERILOG_SOURCES = ' + ' '.join(self.settings['files']))
         lines.append('TOPLEVEL = ' + self.settings['toplevel'])
         lines.append('MODULE = ' + self.settings['module'])
+        lines.append('export CONFIG_YAML = ' + self.settings_file)
         lines.append('include $(COCOTB)/makefiles/Makefile.inc')
         lines.append('include $(COCOTB)/makefiles/Makefile.sim')
         lines.append('')
@@ -62,10 +72,10 @@ class Simulation(object):
         os.system("rm -f results.xml")
 
     def run(self):
-        self.p = subprocess.Popen('make')
-        self.comm = RemoteClient(debug=True)
-        self.wait = Triggers(self.comm)
-        self.clock = Clock(self.comm)
+        self.p = subprocess.Popen(['make'])
+        #self.comm = RemoteClient(debug=True)
+        #self.wait = Triggers(self.comm)
+        #self.clock = Clock(self.comm)
 
     def import_module(self, module):
         self.comm.send_recv('import {}'.format(module))
@@ -95,3 +105,8 @@ class Simulation(object):
     def set_value(self, signal, value):
         ret = self.comm.send_recv("%s = %s" % (signal, value))
         self.log.debug("set_value:%s <= %s" % (signal, value))
+
+    def __del__(self):
+        print('Terminate')
+        self.p.terminate()
+
