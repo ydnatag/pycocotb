@@ -1,11 +1,22 @@
-path: ./
-cocotb_path: /home/ademski/Documents/satellogic/hdlteam/cocotb/
+devices:
+  uart:
+    baudrate: 115200
+    dev: /dev/tty
 
-toplevel: toplevel
-module: pycocotb.interactive
-sim: iverilog
-sim_args: bla bla bla
+simulation:
+  path: ./
+  cocotb_path: /home/ademski/Documents/satellogic/hdlteam/cocotb/
+  toplevel: toplevel
+  module: pycocotb.interactive
+  sim: iverilog
+  files:
+    - ./toplevel.v
 
-files:
-  - ./toplevel.v
-
+  devices:
+    uart:
+      module: pycocotb.buses.uart
+      class: Uart
+      dev: /tmp/uart
+      args:
+        prefix: UART_
+        baudrate: 115200
