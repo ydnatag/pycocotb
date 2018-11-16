@@ -6,6 +6,7 @@ import time
 import yaml
 from serial import Serial
 import sys
+from time import sleep
 
 
 class VirtualUart(object):
@@ -36,6 +37,7 @@ if __name__ == '__main__':
             dev = yaml.load(f)['devices']['uart']['dev']
 
     uart = VirtualUart(dev, sim=sim)
+    sleep(1)
     logging.info('Sending: Hola')
     uart.write(b'Hola')
     logging.info('Received: {}'.format(uart.read(size=4)))
