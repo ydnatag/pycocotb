@@ -1,3 +1,25 @@
+import cocotb
+from threading import Thread
+from cocotb.triggers import Event
+from cocotb.result import ReturnValue
+
+def _wait_python_function_thread(event, ret, func, args):
+    if args is None:
+        args = []
+    assert isinstance(args, list)
+    print("thread")
+    ret.append(func(*args))
+    event.set()
+
+@cocotb.coroutine
+def wait_python_function(func, args=None):
+    evnt = Event()
+    ret = []
+    t = Thread(target=_wait_python_function_thread, args=[evnt, ret, func, args])
+    t.start()
+    yield evnt.wait()
+    raise ReturnValue(ret[0])
+
 
 
 class Triggers(object):
