@@ -2,9 +2,6 @@ import yaml
 import subprocess
 import importlib
 from multiprocessing import Process
-from pycocotb.remote import RemoteClient
-from pycocotb.triggers import Triggers
-from pycocotb.clock import Clock
 import logging
 import os
 
@@ -73,18 +70,6 @@ class Simulation(object):
 
     def run(self):
         self.p = subprocess.Popen('exec make', shell=True, stdout=subprocess.DEVNULL, preexec_fn=os.setsid)
-        #self.comm = RemoteClient(debug=True)
-        #self.wait = Triggers(self.comm)
-        #self.clock = Clock(self.comm)
-
-    def import_module(self, module):
-        self.comm.send_recv('import {}'.format(module))
-
-    def fork(self, cr, args=None):
-        if not args:
-            args = []
-        msg = 'cocotb.fork({}({}))'.format(cr, ', '.join(args))
-        return self.comm.send_recv(msg)
 
     def finish(self, force=False): #TODO: Not working
         os.killpg(self.p.pid, 9)
@@ -92,16 +77,6 @@ class Simulation(object):
 
     def wait_finish(self):
         self.p.wait()
-
-
-    def get_value(self, signal):
-        ret = self.comm.send_recv(signal)
-        self.log.debug("get_value:%s => %s" % (signal, ret))
-        return ret
-
-    def set_value(self, signal, value):
-        ret = self.comm.send_recv("%s = %s" % (signal, value))
-        self.log.debug("set_value:%s <= %s" % (signal, value))
 
     def __del__(self):
         self.finish()
