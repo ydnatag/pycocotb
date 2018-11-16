@@ -72,7 +72,7 @@ class Simulation(object):
         os.system("rm -f results.xml")
 
     def run(self):
-        self.p = subprocess.Popen(['make'])
+        self.p = subprocess.Popen('exec make', shell=True, stdout=subprocess.DEVNULL, preexec_fn=os.setsid)
         #self.comm = RemoteClient(debug=True)
         #self.wait = Triggers(self.comm)
         #self.clock = Clock(self.comm)
@@ -87,10 +87,7 @@ class Simulation(object):
         return self.comm.send_recv(msg)
 
     def finish(self, force=False): #TODO: Not working
-        if not force:
-            self.comm.send_recv('break')
-        else:
-            self.p.kill()
+        os.killpg(self.p.pid, 9)
         self.wait_finish()
 
     def wait_finish(self):
@@ -107,6 +104,5 @@ class Simulation(object):
         self.log.debug("set_value:%s <= %s" % (signal, value))
 
     def __del__(self):
-        print('Terminate')
-        self.p.terminate()
+        self.finish()
 
