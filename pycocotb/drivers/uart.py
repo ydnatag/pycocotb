@@ -1,8 +1,27 @@
 import cocotb
+from cocotb.triggers import Event
 import struct
 import zmq
+from threading import Thread
+from cocotb.result import ReturnValue
 from cocotb.triggers import FallingEdge, RisingEdge, Timer
 
+def _wait_python_function_thread(event, ret, func, args):
+    if args is None:
+        args = []
+    assert isinstance(args, list)
+    print("thread")
+    ret.append(func(*args))
+    event.set()
+
+@cocotb.coroutine
+def wait_python_function(func, args=None):
+    evnt = Event()
+    ret = []
+    t = Thread(target=_wait_python_function_thread, args=[evnt, ret, func, args])
+    t.start()
+    yield evnt.wait()
+    raise ReturnValue(ret[0])
 
 
 class Uart(object):
@@ -33,14 +52,18 @@ class Uart(object):
         idle_timer = Timer(self.period/10, units='ns')
         self.rx <= 1
         while True:
-            yield idle_timer
-            try:
-                data = self.socket.recv(flags=zmq.NOBLOCK)
-            except zmq.ZMQError as exc:
-                if exc.errno == zmq.EAGAIN:
-                    continue
-                else:
-                    raise
+            data = yield wait_python_function(self.socket.recv)
+            self.dut._log.info("receved {}".format(data))
+            #try:
+            #    data = self.socket.recv(flags=zmq.NOBLOCK)
+            #    self.dut._log.info("Recved")
+            #except zmq.ZMQError as exc:
+            #    if exc.errno == zmq.EAGAIN:
+            #        self.dut._log.info("Nono")
+            #        yield PythonTrigger()
+            #        continue
+            #    else:
+            #        raise
             for _d in data:
                 self.rx <= 0
                 yield period_timer
