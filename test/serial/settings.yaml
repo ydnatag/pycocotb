@@ -1,7 +1,7 @@
 devices:
   uart:
     baudrate: 115200
-    dev: /dev/tty
+    dev: /dev/ttyUSB0
 
 simulation:
   path: ./
@@ -14,7 +14,7 @@ simulation:
 
   devices:
     uart:
-      module: pycocotb.buses.uart
+      module: pycocotb.drivers.uart
       class: Uart
       dev: /tmp/uart
       args:
