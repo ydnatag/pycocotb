@@ -69,9 +69,9 @@ class Simulation(object):
         os.system("rm -f results.xml")
 
     def run(self):
-        self.p = subprocess.Popen('exec make', shell=True, stdout=subprocess.DEVNULL, preexec_fn=os.setsid)
+        self.p = subprocess.Popen('exec make', shell=True, preexec_fn=os.setsid)
 
-    def finish(self, force=False): #TODO: Not working
+    def finish(self):
         os.killpg(self.p.pid, 9)
         self.wait_finish()
 
